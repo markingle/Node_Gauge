@@ -1,0 +1,363 @@
+<!-- Here is a decent example to follow for setting up Express webserver https://www.raspberrypi.org/forums/viewtopic.php?t=151184. -->
+
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+  <head>
+    <title>Gauge Display Tool</title>
+
+    <script src="/socket.io/socket.io.js"></script> 
+    
+    <script src="/gauge.min.js"></script>
+
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .slidecontainer {
+            width: 100%;
+        }
+
+        .slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 25px;
+            background: #d3d3d3;
+            outline: none;
+            opacity: 0.7;
+            -webkit-transition: .2s;
+            transition: opacity .2s;
+        }
+
+        .slider:hover {
+            opacity: 1;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 25px;
+            height: 25px;
+            background: #4CAF50;
+            cursor: pointer;
+        }
+
+        .slider::-moz-range-thumb {
+            width: 25px;
+            height: 25px;
+            background: #4CAF50;
+            cursor: pointer;
+        }
+</style>
+
+  </head>
+  <body>
+
+<form name='myForm'>
+Serial Port: <select id="serialports-dropdown" name="serialports" onchange="setSerialPort()"> </select> <br />
+</form>
+
+
+    <canvas id="A0"></canvas>
+    <canvas id="A1"></canvas>
+
+<div class="slidecontainer">
+  <p>Default range slider:</p>
+  <input type="range" min="1" max="100" value="50">
+  
+  <p>Custom range slider:</p>
+  <input type="range" min="1" max="100" value="50" class="slider" id="myRange">
+</div>
+
+<script language="javascript" type="text/javascript">
+
+//Browser Support Code - check compatibility for XMLHttpRequest
+function ajaxFunction(){
+    var ajaxRequest;  // The variable that makes Ajax possible!
+    
+    try{
+        // Opera 8.0+, Firefox, Safari
+        ajaxRequest = new XMLHttpRequest();
+    } catch (e){
+        // Internet Explorer Browsers
+        try{
+            ajaxRequest = new ActiveXObject("Msxml2.XMLHTTP");
+        } catch (e) {
+            try{
+                ajaxRequest = new ActiveXObject("Microsoft.XMLHTTP");
+            } catch (e){
+                // Something went wrong
+                alert("Your browser broke!");
+                return false;
+            }
+        }
+    }
+}
+
+//*******. www.codebyamir.com/blog/populate-a-select-dropdown-list-with-json ******
+
+let dropdown = document.getElementById('serialports-dropdown');
+dropdown.length = 0;
+
+let defaultOption = document.createElement('option');
+defaultOption.text = 'Choose Your Serial Port';
+
+dropdown.add(defaultOption);
+dropdown.selectedIndex = 0;
+
+fetch('./ListSerialPorts')  
+  .then(  
+    function(response) {  
+      if (response.status !== 200) {  
+        console.log('Looks like there was a problem. Status Code: ' +  
+          response.status);  
+        return;  
+      }
+
+      // Examine the text in the response  
+      response.json().then(function(data) {  
+        console.log(data);
+        let option;
+        for (let i = 0; i < data.length; i++)
+        {
+            option = document.createElement('option');
+            option.port = data[i].comName;
+            console.log('port := ',option.port);
+            option.text = option.port;
+            dropdown.add(option);
+        }
+      });  
+    }  
+  )  
+  .catch(function(err) {  
+    console.log('Fetch Error :-S', err);  
+  });
+
+
+function setSerialPort()
+{
+    var serialportselected = document.getElementById("serialports-dropdown").value;
+    //document.getElementById("serialports-dropdown").innerHTML = "You selected: " + x;
+    console.log('Port Selected :=', serialportselected);
+    var options =
+    {
+        method: "POST",
+        headers:
+        {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({port : serialportselected})
+    };
+
+    fetch('./SetSerialPort', options)
+        .then(
+            function(response){
+                if (response.status !== 200)
+                {  
+                    console.log('Looks like there was a problem. Status Code: ' +  response.status);  
+                    return;  
+                }
+            })
+        .catch(function(err) 
+        {  
+        console.log('Fetch Error :-S', err);
+        });
+}
+
+</script>
+
+    <script>
+
+    document.gauges.forEach(function (gauge) {
+    console.log(gauge.type);
+    });
+
+    var gauge = new RadialGauge({
+        renderTo: 'A0',
+        width: 300,
+        height: 300,
+        units: "db",
+        title: "Pot A0",
+        startAngle: 90,
+        ticksAngle: 180,
+        //ticksWidth: 10,
+        //colorPlate: "#ffffff",
+        //colorPlateEnd: "#ffffff",
+        //colorUnits: "#3CA7DB",
+        //colorNumbers: "#534638",
+        //colorNeedle: "#8E7860",
+        //colorNeedleEnd: "#8E7860",
+        //colorNeedleCircleOuter: "#8E7860",
+        //colorNeedleCircleOuterEnd: "#8E7860",
+        //colorNeedleShadowUp: "#8E7860",
+        //colorNeedleShadowDown: "#8E7860",
+        //colorMajorTicks: ["#EBEBEB", "#EBEBEB", "#EBEBEB", "#EBEBEB", "#EBEBEB", "#EBEBEB"],
+        //colorMinorTicks: "#EBEBEB",
+        minValue: 0,
+        maxValue: 127,
+        exactTicks: true,
+        majorTicks: ["0","31","63","95","127"],
+        minorTicks: "3",
+        strokeTicks: true,
+        highlightsWidth: 25,
+        highlights: [
+            {
+                "from": 0,
+                "to": 31,
+                "color": "#7FFC02"
+            },
+            {
+                "from": 31,
+                "to": 63,
+                "color": "#FCF402"
+            },
+            {
+                "from": 63,
+                "to": 95,
+                "color": "#FCA002"
+            },
+            {
+                "from": 95,
+                "to": 127,
+                "color": "#FC1702"
+            }
+        ],
+        numbersMargin: 12,
+        //
+        //barWidth: 20,
+        //barStrokeWidth: 0,
+        //barProgress: 1,
+        //barShadow: 0,
+        //
+        animation: false,
+        animationDuration: 500,
+        animationRule: "linear",
+        animatedValue: true,
+        animateOnInit: true,
+        borders: false,
+        valueBox: true,
+        needleType: "arrow",
+        needleEnd: 65,
+        needleWidth: 4,
+        needleCircleSize: 10,
+        needleCircleInner: false,
+        needleCircleOuter: true,
+        needleShadow: false,
+        borderShadowWidth: 0
+        }).draw();
+    </script>
+
+    <script>
+    var gauge = new RadialGauge({
+        renderTo: 'A1',
+        width: 300,
+        height: 300,
+        units: "db",
+        title: "Pot A1",
+        startAngle: 90,
+        ticksAngle: 180,
+        //colorPlate: "#ffffff",
+        //colorPlateEnd: "#ffffff",
+        //colorUnits: "#3CA7DB",
+        //colorNumbers: "#534638",
+        //colorNeedle: "#8E7860",
+        //colorNeedleEnd: "#8E7860",
+        //colorNeedleCircleOuter: "#8E7860",
+        //colorNeedleCircleOuterEnd: "#8E7860",
+        //colorNeedleShadowUp: "#8E7860",
+        //colorNeedleShadowDown: "#8E7860",
+        //colorMajorTicks: ["#EBEBEB", "#EBEBEB", "#EBEBEB", "#EBEBEB", "#EBEBEB", "#EBEBEB"],
+        //colorMinorTicks: "#EBEBEB",
+        minValue: 0,
+        maxValue: 127,
+        majorTicks: ["0","31","63","95","127"],
+        minorTicks: "2",
+        strokeTicks: true,
+        highlights: [
+            {
+                "from": 0,
+                "to": 31,
+                "color": "#7FFC02"
+            },
+            {
+                "from": 31,
+                "to": 63,
+                "color": "#FCF402"
+            },
+            {
+                "from": 63,
+                "to": 95,
+                "color": "#FCA002"
+            },
+            {
+                "from": 95,
+                "to": 127,
+                "color": "#FC1702"
+            }
+        ],
+        //
+        highlightsWidth: 25,
+        numbersMargin: 12,
+        //
+        //barWidth: 20,
+        //barStrokeWidth: 0,
+        //barProgress: 1,
+        //barShadow: 0,
+        //
+        animation: false,
+        animationDuration: 500,
+        animationRule: "linear",
+        animatedValue: true,
+        animateOnInit: true,
+        borders: false,
+        valueBox: true,
+        needleType: "arrow",
+        needleEnd: 65,
+        needleWidth: 4,
+        needleCircleSize: 10,
+        needleCircleInner: false,
+        needleCircleOuter: true,
+        needleShadow: true,
+        borderShadowWidth: 0
+        }).draw();
+    </script>
+    
+    <script type="text/javascript">
+        var socket, socketData;
+        
+        function init()
+        {
+            initSockets();
+        }
+
+        function initSockets()
+        {
+        socket = io.connect('http://localhost:4000');
+        socket.on('scanData',onScanData);
+        }
+        
+        function onScanData(data)
+        {
+            socketData = data;
+            console.log('scanReceived',data);
+            var DataArray = data.split(","); //Writing console for the moment....I am not sure whatelse to do at this point!  :)
+            var GaugeId = DataArray[0];
+            var Reading = DataArray[1];
+            console.log('GaugeId:', GaugeId, ' Reading:', Reading);
+            if (GaugeId == 'A0'){
+                var A0_gauge = document.gauges.get('A0');
+                A0_gauge.value = Reading;
+                console.log('A0 Reading',Reading);
+                A0_gauge.update();
+                return;  
+            }
+            if (GaugeId == 'A1'){
+                var A1_gauge = document.gauges.get('A1');
+                A1_gauge.value = Reading;
+                console.log('A1 Reading',Reading);
+                A1_gauge.update();
+                return;   
+            }
+        }
+
+        init();
+    </script>
+  </body>
+</html>
