@@ -31,8 +31,8 @@ app.get('/ListSerialPorts', function(reg, res)
 		{
 			console.log('Serial Port = ', port.comName);
 			//var SerialPortName = port.comName;
-    		res.send(JSON.stringify(ports));
   		});
+  		res.send(JSON.stringify(ports));
 	});
 	
 });		
